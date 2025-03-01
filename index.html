@@ -99,43 +99,43 @@
   </script>
   
   <!-- Scripts -->
-  <script type="module" src="./scripts/main.js"></script>
+  <script type="module" src="./scripts/Main.js"></script>
   <script type="module">
     import { FluidSimulation } from './scripts/FluidSimulation.js';
     const canvas = document.getElementById('webglCanvas'); 
     const fluidSimulation = new FluidSimulation(canvas);
 
     const updateParticleCount = () => {
-      const particleCount = fluidSimulation.getParticleCount();
+      const particleCount = FluidSimulation.getParticleCount();
       document.getElementById('particleCount').innerText = particleCount;
     };
 
     document.getElementById('waterToolBtn').addEventListener('click', () => {
-      fluidSimulation.interactionManager.setTool('water');
+      FluidSimulation.interactionManager.setTool('water');
       updateParticleCount();
     });
     document.getElementById('windToolBtn').addEventListener('click', () => {
-      fluidSimulation.interactionManager.setTool('wind');
+      FluidSimulation.interactionManager.setTool('wind');
       updateParticleCount();
     });
     document.getElementById('eraseWaterBtn').addEventListener('click', () => {
-      fluidSimulation.interactionManager.setTool('eraseWater');
+      FluidSimulation.interactionManager.setTool('eraseWater');
       updateParticleCount();
     });
     document.getElementById('eraseWindBtn').addEventListener('click', () => {
-      fluidSimulation.interactionManager.setTool('eraseWind');
+      FluidSimulation.interactionManager.setTool('eraseWind');
       updateParticleCount();
     });
     document.getElementById('brushSize').addEventListener('input', (event) => {
-      fluidSimulation.interactionManager.setBrushSize(event.target.value);
+      FluidSimulation.interactionManager.setBrushSize(event.target.value);
       updateParticleCount();
     });
     document.getElementById('brushStrength').addEventListener('input', (event) => {
-      fluidSimulation.interactionManager.setBrushStrength(event.target.value);
+      FluidSimulation.interactionManager.setBrushStrength(event.target.value);
       updateParticleCount();
     });
     document.getElementById('resetBtn').addEventListener('click', () => {
-      fluidSimulation.resetSimulation();
+      FluidSimulation.resetSimulation();
       updateParticleCount();
     });
 

@@ -1,6 +1,6 @@
 import { Particle } from './Particle.js';
 import { FluidRenderer } from './FluidRenderer.js';
-import { SPHSystem } from './SPHSystem.js';
+import { SPHSystem } from './SphSystem.js';
 import { BoundaryHandler } from './BoundaryHandler.js';
 import { InteractionManager } from './InteractionManager.js';
 import { Vector2 } from './Vector2.js';
@@ -124,8 +124,12 @@ export class FluidSimulation {
     console.log('Simulation reset');
   }
 
+  getParticleCount() {
+    return this.sph.particles.length;
+  }
+
   updateParticleCount() {
     const particleCountElement = document.getElementById('particleCount');
-    particleCountElement.textContent = `Particles: ${this.sph.particles.length}`;
+    particleCountElement.textContent = `Particles: ${this.getParticleCount()}`;
   }
 }

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FluidSim - Real-Time Fluid Simulation</title>
+  <link rel="stylesheet" href="styles.css"> <!-- Link to external CSS file -->
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <h1>FluidSim</h1>
+      <p>Experience the power of real-time fluid dynamics simulation. Built with cutting-edge WebGL and mathematical precision.</p>
+    </div>
+  </header>
+  <!-- Hero Section -->
+  <section class="hero container">
+    <a href="#simulation" class="cta-button" id="launchButton">Launch Simulation</a>
+  </section>
+  <!-- Features Section -->
+  <section class="features container">
+    <div class="feature-card">
+      <h3>Real-Time Physics</h3>
+      <p>Powered by advanced SPH (Smoothed Particle Hydrodynamics) algorithms for realistic fluid behavior.</p>
+    </div>
+    <div class="feature-card">
+      <h3>Interactive Tools</h3>
+      <p>Create, manipulate, and experiment with fluids using intuitive tools like water, wind, and erasers.</p>
+    </div>
+    <div class="feature-card">
+      <h3>Customizable Parameters</h3>
+      <p>Adjust viscosity, surface tension, and more to see how fluids behave under different conditions.</p>
+    </div>
+  </section>
+  <!-- Simulation Section -->
+  <section id="simulation" class="simulation-section">
+    <div class="container">
+      <h2>Fluid Simulation</h2>
+      <p>Interact with the simulation below. Use the tools to create waves, add wind, and experiment with fluid dynamics.</p>
+      <div class="canvas-container">
+        <canvas id="webglCanvas" width="800" height="600"></canvas> <!-- Fixed canvas ID -->
+        <canvas id="overlayCanvas" width="800" height="600"></canvas> <!-- 2D canvas for brush drawing -->
+      </div>
+      
+      <div id="controls">
+        <button id="waterToolBtn">Water Tool</button>
+        <button id="windToolBtn">Wind Tool</button>
+        <button id="eraseWaterBtn">Erase Water</button>
+        <button id="eraseWindBtn">Erase Wind</button>
+        <br><br>
+        <label for="brushSize">Brush Size</label>
+        <input type="range" id="brushSize" min="10" max="100" value="50">
+        <br><br>
+        <label for="brushStrength">Brush Strength</label>
+        <input type="range" id="brushStrength" min="1" max="200" value="100">
+        <div class="control-group">
+          <label>Particle Count: <span id="particleCount">0</span></label>
+        </div>
+      </div>
+      <!-- Simulation Parameters -->
+      <div class="control-group">
+        <label>Viscosity: <span id="viscosityValue">0.01</span></label>
+        <input type="range" id="viscosity" min="0" max="0.1" step="0.001" value="0.01">
+        
+        <label>Surface Tension: <span id="surfaceTensionValue">0.0728</span></label>
+        <input type="range" id="surfaceTension" min="0" max="0.2" step="0.001" value="0.0728">
+      </div>
+      <!-- Actions -->
+      <div class="control-group">
+        <button id="resetBtn">🔄 Reset Simulation</button>
+      </div>
+    </div>
+  </section>
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 FluidSim. All rights reserved. Built By William Joffe.</p>
+    </div>
+  </footer>
+  <!-- Shaders -->
+  <script id="vertex-shader" type="x-shader/x-vertex">
+    attribute vec2 a_position;
+    uniform vec2 u_resolution;
+    uniform float u_pointSize;
+    void main() {
+      // Convert the particle positions to normalized coordinates.
+      vec2 normalizedPosition = (a_position / u_resolution) * 2.0 - 1.0;
+      gl_Position = vec4(normalizedPosition, 0.0, 1.0);
+      gl_PointSize = u_pointSize; // Set the point size of the particles.
+    }
+  </script>
+  <script id="fragment-shader" type="x-shader/x-fragment">
+    precision mediump float;
+    void main() {
+      // Simple white color for the particles.
+      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }
+  </script>
+  
+  <!-- Scripts -->
+  <script type="module" src="./scripts/main.js"></script>
+  <script type="module">
+    import { FluidSimulation } from './scripts/FluidSimulation.js';
+    const canvas = document.getElementById('webglCanvas'); 
+    const fluidSimulation = new FluidSimulation(canvas);
+
+    const updateParticleCount = () => {
+      const particleCount = fluidSimulation.getParticleCount();
+      document.getElementById('particleCount').innerText = particleCount;
+    };
+
+    document.getElementById('waterToolBtn').addEventListener('click', () => {
+      fluidSimulation.interactionManager.setTool('water');
+      updateParticleCount();
+    });
+    document.getElementById('windToolBtn').addEventListener('click', () => {
+      fluidSimulation.interactionManager.setTool('wind');
+      updateParticleCount();
+    });
+    document.getElementById('eraseWaterBtn').addEventListener('click', () => {
+      fluidSimulation.interactionManager.setTool('eraseWater');
+      updateParticleCount();
+    });
+    document.getElementById('eraseWindBtn').addEventListener('click', () => {
+      fluidSimulation.interactionManager.setTool('eraseWind');
+      updateParticleCount();
+    });
+    document.getElementById('brushSize').addEventListener('input', (event) => {
+      fluidSimulation.interactionManager.setBrushSize(event.target.value);
+      updateParticleCount();
+    });
+    document.getElementById('brushStrength').addEventListener('input', (event) => {
+      fluidSimulation.interactionManager.setBrushStrength(event.target.value);
+      updateParticleCount();
+    });
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      fluidSimulation.resetSimulation();
+      updateParticleCount();
+    });
+
+    // Initial update
+    updateParticleCount();
+  </script>
+</body>
+</html>

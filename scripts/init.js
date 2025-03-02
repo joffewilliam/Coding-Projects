@@ -1,6 +1,6 @@
 import { FluidSimulation } from './FluidSimulation.js';
 import { FluidRenderer } from './FluidRenderer.js';
-import { UIControls } from './UIControls.js';
+import { UIControls, setupLaunchButton, setupFeatureInteractions } from './UIControls.js';
 
 // Get the WebGL canvas
 const canvas = document.getElementById('webglCanvas');
@@ -31,3 +31,9 @@ fluidSimulation.animate = function() {
 
 // Start the animation
 fluidSimulation.animate();
+
+document.addEventListener('DOMContentLoaded', () => {
+  setupLaunchButton();
+  setupFeatureInteractions();
+  // ...your other initialization code
+});

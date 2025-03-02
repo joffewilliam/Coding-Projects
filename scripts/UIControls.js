@@ -13,15 +13,11 @@ export class UIControls {
     document.getElementById('waterToolBtn').addEventListener('click', () => {
       this.interactionManager.setTool('water');
     });
-    document.getElementById('windToolBtn').addEventListener('click', () => {
-      this.interactionManager.setTool('wind');
-    });
+
     document.getElementById('eraseWaterBtn').addEventListener('click', () => {
       this.interactionManager.setTool('eraseWater');
     });
-    document.getElementById('eraseWindBtn').addEventListener('click', () => {
-      this.interactionManager.setTool('eraseWind');
-    });
+
     document.getElementById('resetBtn').addEventListener('click', () => {
       this.simulation.resetSimulation();
     });
@@ -47,19 +43,10 @@ export class UIControls {
         const value = parseFloat(e.target.value);
         viscosityValue.textContent = value.toFixed(3);
         
-        // Update shader constants by modifying the update shader
-        // This is a simplified approach - in a production app, you'd use uniforms
-        const shaderElement = document.getElementById('update-shader');
-        if (shaderElement) {
-          const shaderText = shaderElement.textContent;
-          // For demonstration, we're not actually modifying the shader text here
-          // In a real implementation, you would pass this as a uniform to the shader
-          
-          // Instead, we'll update the simulation's viscosity parameter
-          // This would require adding a setViscosity method to FluidSimulation
-          if (this.simulation.setViscosity) {
-            this.simulation.setViscosity(value * 50000); // Scale to appropriate range for shader
-          }
+        // Update the simulation's viscosity parameter directly
+        // Note: The scaling is handled in FluidSimulation.js
+        if (this.simulation.setViscosity) {
+          this.simulation.setViscosity(value);
         }
       });
     }
@@ -73,8 +60,7 @@ export class UIControls {
         const value = parseFloat(e.target.value);
         surfaceTensionValue.textContent = value.toFixed(4);
         
-        // Similar to viscosity, in a real implementation you would
-        // pass this as a uniform to the shader
+        // Update the simulation's surface tension parameter directly
         if (this.simulation.setSurfaceTension) {
           this.simulation.setSurfaceTension(value);
         }

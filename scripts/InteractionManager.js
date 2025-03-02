@@ -1,14 +1,11 @@
-import { Vector2 } from './Vector2.js';
-import { Particle } from './Particle.js';
-
 export class InteractionManager {
   constructor(canvas, simulation) {
     this.canvas = canvas;
     this.simulation = simulation;
-    this.currentTool = 'water'; // Options: 'water', 'wind', 'eraseWater', 'eraseWind'
+    this.currentTool = 'water'; // Options: 'water', 'eraseWater'
     this.isDrawing = false;
-    this.brushSize = 50; // Brush radius for wind/erase tools
-    this.lastMousePos = null; // For optional delta calculations
+    this.brushSize = 50; // Brush radius for erase tool
+    this.lastMousePos = null;
 
     // Add properties to throttle water drops:
     this.lastWaterDropTime = 0;
@@ -71,14 +68,11 @@ export class InteractionManager {
       // Throttle water drops based on cooldown.
       const now = Date.now();
       if (now - this.lastWaterDropTime >= this.waterDropCooldown) {
-        this.simulation.addWaterParticles(pos.x, pos.y, 10);
+        // Add more particles at once for better water accumulation
+        this.simulation.addWaterParticles(pos.x, pos.y, 30);
         this.lastWaterDropTime = now;
       }
-    } else if (this.currentTool === 'wind') {
-      const forceX = 1.0;
-      const forceY = 1.0;
-      this.simulation.addWindForce(pos.x, pos.y, forceX, forceY, this.brushSize);
-    } else if (this.currentTool === 'eraseWater' || this.currentTool === 'eraseWind') {
+    } else if (this.currentTool === 'eraseWater') {
       this.simulation.eraseWater(pos.x, pos.y, this.brushSize);
     }
 

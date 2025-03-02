@@ -5,6 +5,7 @@ export class InteractionManager {
     this.currentTool = 'water'; // Options: 'water', 'eraseWater'
     this.isDrawing = false;
     this.brushSize = 50; // Brush radius for erase tool
+    this.particleCount = 30; // Default particle count for water tool
     this.lastMousePos = null;
 
     // Add properties to throttle water drops:
@@ -68,8 +69,8 @@ export class InteractionManager {
       // Throttle water drops based on cooldown.
       const now = Date.now();
       if (now - this.lastWaterDropTime >= this.waterDropCooldown) {
-        // Add more particles at once for better water accumulation
-        this.simulation.addWaterParticles(pos.x, pos.y, 30);
+        // Use the dynamic particleCount instead of hardcoded value
+        this.simulation.addWaterParticles(pos.x, pos.y, this.particleCount);
         this.lastWaterDropTime = now;
       }
     } else if (this.currentTool === 'eraseWater') {
@@ -85,5 +86,10 @@ export class InteractionManager {
 
   setBrushSize(size) {
     this.brushSize = size;
+  }
+
+  // Add this new method to set particle count
+  setParticleCount(count) {
+    this.particleCount = count;
   }
 }

@@ -33,7 +33,7 @@ export class FluidSimulation {
     // Spatial partitioning grid properties
     this.gridCellSize = 25.0; // Reduce from 40.0 to 25.0 for better spatial partitioning
     this.useGPUGridConstruction = true; // Flag to enable GPU-based grid construction
-    this.maxParticlesPerCell = 32; // Limit particles per grid cell
+    this.maxParticlesPerCell = 16; // Limit particles per grid cell
     this.frameSkip = 0; // Frame skip counter for less frequent spatial grid updates
     this.frameSkipMax = 2; // Only update spatial grid every 3 frames
     this.gridWidth = 0;
@@ -252,7 +252,7 @@ export class FluidSimulation {
     gl.texImage2D(
         gl.TEXTURE_2D, 0,
         gl.R32I,  // Single integer component
-        this.gridWidth * 32, this.gridHeight, 0, // Allow up to 32 particles per cell
+        this.gridWidth * 16, this.gridHeight, 0, // Allow up to 32 particles per cell
         gl.RED_INTEGER, gl.INT,
         null
     );
@@ -453,16 +453,16 @@ export class FluidSimulation {
   }
 
   render() {
-    if (!this.renderProgram) {
+    const gl = this.gl;
+    
+    // Safety check - if anything isn't initialized yet, just return
+    if (!gl || !this.buffers || !this.buffers[0]) {
+      console.warn("FluidSimulation not fully initialized yet, skipping render");
       return;
     }
     
-    const gl = this.gl;
-
-    // Ensure no transform feedback is bound
-    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
-
-    gl.useProgram(this.renderProgram);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
     
     // Use the current particle buffer
     const bufferToRender = this.swap ? this.buffers[1] : this.buffers[0];
@@ -527,7 +527,7 @@ export class FluidSimulation {
   }
 
   // Adds water particles near (x,y) in a circular area.
-  addWaterParticles(x, y, count = 30) { // Increased default count
+  addWaterParticles(x, y, count = 15) { // Increased default count
     const gl = this.gl;
     const oldActiveCount = this.activeParticleCount; // Save current count
 
@@ -537,7 +537,7 @@ export class FluidSimulation {
       
       // Use a more structured grid-like distribution with small random offsets
       // This helps particles stack better by starting with a more organized arrangement
-      const particleRadius = 10.0; // Match PARTICLE_RADIUS in shader
+      const particleRadius = 5.0; // Match PARTICLE_RADIUS in shader
       const spacing = particleRadius * 2.1; // Slightly more than diameter to prevent initial overlap
       
       const gridSize = Math.ceil(Math.sqrt(count));
@@ -718,6 +718,24 @@ export class FluidSimulation {
       ctx.arc(x, overlayCanvas.height - y, 5, 0, Math.PI * 2);
       ctx.fill();
     }
+  }
+
+  // Method to expose the current buffer and rendering data to external renderers
+  getParticleRenderData() {
+    // Check if buffers are initialized
+    if (!this.buffers || !this.buffers[0]) {
+      console.warn("Buffers not initialized yet");
+      return null;
+    }
+    
+    return {
+      buffer: this.swap ? this.buffers[1] : this.buffers[0],
+      count: this.activeParticleCount,
+      positionAttribLocation: this.r_a_positionLoc,
+      stride: 16,
+      offset: 0,
+      gl: this.gl
+    };
   }
 }
 

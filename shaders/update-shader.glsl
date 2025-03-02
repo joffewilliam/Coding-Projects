@@ -28,12 +28,12 @@ uniform isampler2D u_gridCount;
 uniform ivec2 u_gridSize;
 uniform float u_gridCellSize;
 
-// Constants - TRY THESE SPECIFIC VALUES
-const float REST_DENSITY = 50.0;           // Lower rest density to ensure pressure builds up
-const float GAS_CONSTANT = 1000.0;         // Much higher gas constant for stiffer collisions
-const float PARTICLE_MASS = 5.0;           // Keep this as is
-const float PARTICLE_RADIUS = 10.0;        // Keep this as is
-const float H = 30.0;                      // Slightly larger smoothing radius
+// Constants - ADJUSTED FOR LESS COMPRESSION
+const float REST_DENSITY = 111.0;           // Keep this the same
+const float GAS_CONSTANT = 5000.0;         // Increase stiffness (was 3000.0)
+const float PARTICLE_MASS = 10.0;           // Keep this the same
+const float PARTICLE_RADIUS = 5.0;        // Keep this the same
+const float H = 30.0;                      // Keep this the same
 const float HSQ = H * H;
 
 float poly6Kernel(float distSq) {
@@ -132,6 +132,27 @@ void main() {
 
     // Calculate pressure explicitly
     float pressure = GAS_CONSTANT * max(0.0, density - REST_DENSITY);
+
+    // Add density correction to prevent stacking/compression
+    // This creates a stronger repulsion at higher densities
+    float densityRatio = density / REST_DENSITY;
+    float pressureTerm = 0.0;
+
+    if (densityRatio > 1.0) {
+        // Progressive stiffness - gets much stiffer as density increases
+        float overCompression = densityRatio - 1.0;
+        float stiffnessFactor = 1.0 + 5.0 * overCompression * overCompression;
+        pressure = GAS_CONSTANT * (density - REST_DENSITY) * stiffnessFactor;
+    } else {
+        // Standard pressure for normal or low density regions
+        pressure = GAS_CONSTANT * (density - REST_DENSITY);
+    }
+
+    // Also add a stronger artificial pressure term to prevent tight clustering
+    artificialPressure = 0.0;
+    if (density > REST_DENSITY * 0.8) {
+        artificialPressure = 0.2 * GAS_CONSTANT * (density - REST_DENSITY * 0.8);
+    }
 
     // Calculate pressure with artificial term
     pressure += artificialPressure;

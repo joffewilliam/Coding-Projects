@@ -7,6 +7,7 @@ export class UIControls {
     this.interactionManager = new InteractionManager(canvas, simulation);
     this.bindUI();
     this.setupSliders();
+    this.initParticleCountSlider();
   }
 
   bindUI() {
@@ -64,6 +65,24 @@ export class UIControls {
         if (this.simulation.setSurfaceTension) {
           this.simulation.setSurfaceTension(value);
         }
+      });
+    }
+  }
+
+  initParticleCountSlider() {
+    const slider = document.getElementById('particleCountSlider');
+    const valueDisplay = document.getElementById('particleCountValue');
+    
+    if (slider && valueDisplay) {
+      // Set initial value
+      valueDisplay.textContent = slider.value;
+      this.interactionManager.setParticleCount(parseInt(slider.value));
+      
+      // Update when slider changes
+      slider.addEventListener('input', () => {
+        const count = parseInt(slider.value);
+        valueDisplay.textContent = count;
+        this.interactionManager.setParticleCount(count);
       });
     }
   }

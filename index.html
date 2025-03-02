@@ -58,9 +58,14 @@
       <div id="controls" class="control-panel">
         <div class="control-group">
           <button id="waterToolBtn" data-tool="water" class="tool-btn">Water Tool</button>
-
+          <!-- Add other tool buttons here -->
+        </div>
+        <div class="control-group">
+          <label for="particleCountSlider">Particle Count: <span id="particleCountValue">30</span></label>
+          <input type="range" id="particleCountSlider" min="5" max="100" step="5" value="30">
+        </div>
+        <div class="control-group">
           <button id="eraseWaterBtn" data-tool="eraseWater" class="tool-btn">Erase Water</button>
-
         </div>
         <div class="control-group">
           <label for="brushSize">Brush Size</label>

@@ -17,7 +17,7 @@
 }
 
 body {
-  font-family: var(--font-family);
+  font-family: Arial, sans-serif;
   background-color: var(--background-color);
   color: var(--text-color);
   line-height: 1.6;
@@ -36,9 +36,9 @@ a:hover {
 
 /* === Container === */
 .container {
-  max-width: var(--max-width);
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 20px;
   position: relative; /* Add relative positioning to the container */
 }
 
@@ -134,7 +134,7 @@ header p {
   min-height: 80vh; /* Ensure the section is at least 80% of the viewport height */
 }
 
-.simulation-section h2 {
+simulation-section h2 {
   font-size: 2.5rem;
   margin-bottom: 1rem;
   color: var(--accent-color);
@@ -161,6 +161,7 @@ header p {
   left: 0;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: black; /* Keep canvas background black */
 }
 
 #webglCanvas {
@@ -170,14 +171,19 @@ header p {
 #overlayCanvas {
   z-index: 2; /* Higher z-index for overlay canvas */
   pointer-events: none; /* Ensure interactions happen on the WebGL canvas */
+  background-color: transparent; /* make overlay transparent */
 }
 
 /* === Controls === */
 #controls {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 20px;
+  background-color: var(--background-color); /* Set control panel background to dark blue */
+  border: 1px solid #ddd;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
 }
 
 #controls button {
@@ -205,22 +211,44 @@ header p {
   max-width: 300px;
 }
 
+#controls .control-group {
+  flex: 1 1 calc(33.333% - 20px);
+  min-width: 200px;
+}
+
 /* === Control Group === */
 .control-group {
-  margin-top: 1rem;
+  margin-bottom: 15px;
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
   justify-content: space-between;
-  margin-bottom: 10px;
 }
 
 .control-group label {
-  margin-right: 0.5rem;
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
 }
 
 .control-group input[type="range"] {
-  width: 150px;
+  width: 100%;
+}
+
+.control-group button {
+  display: inline-block;
+  margin-right: 10px;
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+}
+
+.control-group button:hover {
+  background-color: #0056b3;
 }
 
 /* === Footer === */

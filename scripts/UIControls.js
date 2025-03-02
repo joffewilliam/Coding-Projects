@@ -1,81 +1,84 @@
+import { InteractionManager } from './InteractionManager.js';
+
 export class UIControls {
-  constructor(simulation) {
+  constructor(simulation, canvas) {
     this.simulation = simulation;
-    this.initControls();
+    // Create a new InteractionManager instance
+    this.interactionManager = new InteractionManager(canvas, simulation);
+    this.bindUI();
+    this.setupSliders();
   }
 
-  initControls() {
-    // Tool Selection
-    const toolButtons = [
-  document.getElementById('waterToolBtn'),
-  document.getElementById('windToolBtn'),
-  document.getElementById('eraseWaterBtn'),
-  document.getElementById('eraseWindBtn')
-];
-    if (!toolButtons.length) {
-      console.error('Tool buttons not found');
-      return;
-    }
-
-    toolButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        this.simulation.interactionManager.setTool(btn.dataset.tool);
-        document.querySelector('.tool-btn.active')?.classList.remove('active');
-        btn.classList.add('active');
+  bindUI() {
+    document.getElementById('waterToolBtn').addEventListener('click', () => {
+      this.interactionManager.setTool('water');
+    });
+    document.getElementById('windToolBtn').addEventListener('click', () => {
+      this.interactionManager.setTool('wind');
+    });
+    document.getElementById('eraseWaterBtn').addEventListener('click', () => {
+      this.interactionManager.setTool('eraseWater');
+    });
+    document.getElementById('eraseWindBtn').addEventListener('click', () => {
+      this.interactionManager.setTool('eraseWind');
+    });
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      this.simulation.resetSimulation();
+    });
+    
+    // Set up brush size control
+    const brushSizeSlider = document.getElementById('brushSize');
+    if (brushSizeSlider) {
+      brushSizeSlider.addEventListener('input', (e) => {
+        this.interactionManager.setBrushSize(parseInt(e.target.value));
       });
-    });
-
-    // Brush Controls
-    const brushSize = document.getElementById('brushSize');
-    if (!brushSize) {
-      console.error('Brush size input not found');
-      return;
+      // Initialize with default value
+      this.interactionManager.setBrushSize(parseInt(brushSizeSlider.value));
     }
-    brushSize.addEventListener('input', () => {
-      this.simulation.interactionManager.setBrushSize(brushSize.value);
-      document.getElementById('brushSizeValue').textContent = brushSize.value;
-    });
-
-    const brushStrength = document.getElementById('brushStrength');
-    if (!brushStrength) {
-      console.error('Brush strength input not found');
-      return;
+  }
+  
+  setupSliders() {
+    // Viscosity slider
+    const viscositySlider = document.getElementById('viscosity');
+    const viscosityValue = document.getElementById('viscosityValue');
+    
+    if (viscositySlider && viscosityValue) {
+      viscositySlider.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        viscosityValue.textContent = value.toFixed(3);
+        
+        // Update shader constants by modifying the update shader
+        // This is a simplified approach - in a production app, you'd use uniforms
+        const shaderElement = document.getElementById('update-shader');
+        if (shaderElement) {
+          const shaderText = shaderElement.textContent;
+          // For demonstration, we're not actually modifying the shader text here
+          // In a real implementation, you would pass this as a uniform to the shader
+          
+          // Instead, we'll update the simulation's viscosity parameter
+          // This would require adding a setViscosity method to FluidSimulation
+          if (this.simulation.setViscosity) {
+            this.simulation.setViscosity(value * 50000); // Scale to appropriate range for shader
+          }
+        }
+      });
     }
-    brushStrength.addEventListener('input', () => {
-      this.simulation.interactionManager.setBrushStrength(brushStrength.value);
-      document.getElementById('brushStrengthValue').textContent = brushStrength.value;
-    });
-
-    // Simulation Parameters
-    const viscosity = document.getElementById('viscosity');
-    if (!viscosity) {
-      console.error('Viscosity input not found');
-      return;
+    
+    // Surface tension slider
+    const surfaceTensionSlider = document.getElementById('surfaceTension');
+    const surfaceTensionValue = document.getElementById('surfaceTensionValue');
+    
+    if (surfaceTensionSlider && surfaceTensionValue) {
+      surfaceTensionSlider.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        surfaceTensionValue.textContent = value.toFixed(4);
+        
+        // Similar to viscosity, in a real implementation you would
+        // pass this as a uniform to the shader
+        if (this.simulation.setSurfaceTension) {
+          this.simulation.setSurfaceTension(value);
+        }
+      });
     }
-    viscosity.addEventListener('input', () => {
-      this.simulation.sph.viscosity = viscosity.value;
-      document.getElementById('viscosityValue').textContent = viscosity.value;
-    });
-
-    const surfaceTension = document.getElementById('surfaceTension');
-    if (!surfaceTension) {
-      console.error('Surface tension input not found');
-      return;
-    }
-    surfaceTension.addEventListener('input', () => {
-      this.simulation.sph.surfaceTension = surfaceTension.value;
-      document.getElementById('surfaceTensionValue').textContent = surfaceTension.value;
-    });
-
-    // Reset Button
-    const resetBtn = document.getElementById('resetBtn');
-    if (!resetBtn) {
-      console.error('Reset button not found');
-      return;
-    }
-    resetBtn.addEventListener('click', () => {
-      this.simulation.sph.particles = [];
-      this.simulation.init();
-    });
   }
 }

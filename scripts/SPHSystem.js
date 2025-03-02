@@ -6,24 +6,29 @@ export class SPHSystem {
     this.canvas = canvas;
     this.particles = [];
     this.spatialHash = new SpatialHash(10, canvas); // Initialize spatial hash with cell size 10
-    this.gravity = new Vector2(0, -9.81); // Gravity vector (downward in canvas coordinates)
+    // Gravity now pulls downward (negative Y) so particles fall toward bottom of canvas
+    this.gravity = new Vector2(0, -9.81); 
     this.viscosity = 0.02; // Increased viscosity for smoother flow
     this.surfaceTension = 0.0728; // Example surface tension value
-    this.stiffness = 1000; // Stiffness constant for pressure calculation
-    this.restDensity = 1000; // Rest density for pressure calculation
+    this.stiffness = 100; // Lowered stiffness reduces the magnitude of pressure forces
+    this.restDensity = 500; // Rest density for pressure calculation
     this.smoothingLength = 10; // Smoothing length for SPH kernels
+    this.epsilon = 0.5; // Increased epsilon to avoid extreme forces when particles nearly overlap
+
     this.kernel = {
       spikyGradient: (r, rLen) => {
-        if (rLen <= this.smoothingLength) {
-          const h = this.smoothingLength;
+        const h = this.smoothingLength;
+        if (rLen <= h && rLen > this.epsilon) {
           const coeff = 15 / (Math.PI * Math.pow(h, 6));
-          return r.normalized().mul(coeff * Math.pow(h - rLen, 2));
+          // Clamp r if rLen is extremely small:
+          const safeR = rLen < this.epsilon ? this.epsilon : rLen;
+          return r.normalized().mul(coeff * Math.pow(h - safeR, 2));
         }
         return new Vector2(0, 0);
       },
       viscosityLaplacian: (rLen) => {
-        if (rLen <= this.smoothingLength) {
-          const h = this.smoothingLength;
+        const h = this.smoothingLength;
+        if (rLen <= h) {
           const coeff = 45 / (Math.PI * Math.pow(h, 6));
           return coeff * Math.pow(h - rLen, 2);
         }
@@ -42,28 +47,19 @@ export class SPHSystem {
   }
 
   update(dt) {
-    // Update spatial hash
+    // Update spatial hash with current particle positions
     this.spatialHash.clear();
     this.particles.forEach(p => this.spatialHash.insert(p));
 
-    // Calculate densities and pressures
+    // Calculate densities, pressures, and forces
     this.calculateDensitiesAndPressures();
-
-    // Calculate forces
     this.calculateForces();
 
-    // Integrate forces to update velocities and positions
+    // Integrate forces (including boundary forces) in one step per particle
     this.particles.forEach(p => {
-      p.velocity = p.velocity.add(p.force.mul(dt / p.mass)).mul(0.99); // Damping factor for stability
-      p.position = p.position.add(p.velocity.mul(dt));
-
-      // Update spatial hash
-      this.spatialHash.update(p);
-
-      // Boundary conditions (repulsive force)
-      const boundaryForce = new Vector2(0, 0);
-      const boundaryDamping = 0.5; // Damping factor for boundary forces
-      const boundaryStrength = 100; // Strength of the boundary repulsive force
+      // Compute boundary repulsive force
+      let boundaryForce = new Vector2(0, 0);
+      const boundaryStrength = 100; // Tune as needed
 
       if (p.position.x < 0) {
         boundaryForce.x += boundaryStrength * (-p.position.x);
@@ -78,9 +74,18 @@ export class SPHSystem {
         boundaryForce.y += boundaryStrength * (this.canvas.height - p.position.y);
       }
 
+      // Add boundary force to the already accumulated forces
       p.force = p.force.add(boundaryForce);
-      p.velocity = p.velocity.add(p.force.mul(dt / p.mass)).mul(0.99); // Damping factor for stability
+
+      // Single integration step with damping
+      p.velocity = p.velocity.add(p.force.mul(dt / p.mass)).mul(0.99);
       p.position = p.position.add(p.velocity.mul(dt));
+
+      // Update the spatial hash for the new position
+      this.spatialHash.update(p);
+
+      // Reset force after integration to avoid accumulation over frames
+      p.force = new Vector2(0, 0);
     });
   }
 
@@ -108,51 +113,52 @@ export class SPHSystem {
       neighbors.forEach(pj => {
         const r = pi.position.sub(pj.position);
         const rLen = r.mag();
-        if (rLen > 0 && rLen <= this.smoothingLength) {
+        if (rLen > this.epsilon && rLen <= this.smoothingLength) {
           // Pressure force
-          const pressureKernel = this.kernel.spikyGradient(r, rLen);
-          pressureForce = pressureForce.add(
-            pressureKernel.mul(
-              -(pi.pressure + pj.pressure) / (2 * pj.density) * pj.mass
-            )
-          );
+          const gradW = this.kernel.spikyGradient(r, rLen);
+          let pressureTerm = -(pi.pressure + pj.pressure) / (2 * pj.density);
+          pressureForce = pressureForce.add(gradW.mul(pressureTerm * pj.mass));
 
           // Viscosity force
           viscosityForce = viscosityForce.add(
             pj.velocity.sub(pi.velocity).mul(
-              this.viscosity * this.kernel.viscosityLaplacian(rLen) / pj.density * pj.mass
+              this.viscosity * this.kernel.viscosityLaplacian(rLen) * (pj.mass / pj.density)
             )
           );
 
-          // Surface tension
-          normal = normal.add(r.mul(this.kernel.poly6(r.dot(r)) / pj.density * pj.mass));
-          curvature += this.kernel.poly6(r.dot(r)) / pj.density * pj.mass;
+          // Surface tension: accumulate normals and curvature
+          let poly6Val = this.kernel.poly6(r.dot(r));
+          normal = normal.add(r.mul((pj.mass / pj.density) * poly6Val));
+          curvature += (pj.mass / pj.density) * poly6Val;
         }
       });
 
-      // Normalize surface tension components
+      // Surface tension: if normal is nonzero, compute force
       const normalLen = normal.mag();
-      if (normalLen > 0) {
+      if (normalLen > this.epsilon) {
         normal = normal.div(normalLen);
         curvature = Math.abs(curvature) / normalLen;
         surfaceTensionForce = normal.mul(-this.surfaceTension * curvature);
       }
 
-      // Gravity is now applied downward (using positive Y for canvas)
+      // Gravity force (now with negative Y so particles fall downward)
       const gravityForce = this.gravity.mul(pi.mass);
 
-      // Total force
-      pi.force = pressureForce
-        .add(viscosityForce)
-        .add(surfaceTensionForce)
-        .add(gravityForce);
+      // Total force accumulation
+      // Clamp pressure force magnitude to avoid explosive behavior
+      const maxPressureForce = 500;
+      if (pressureForce.mag() > maxPressureForce) {
+        pressureForce = pressureForce.normalized().mul(maxPressureForce);
+      }
+      pi.force = pressureForce.add(viscosityForce).add(surfaceTensionForce).add(gravityForce);
     });
   }
 
   reset() {
-    this.particles = []; // Clear particles
-    this.spatialHash.clear(); // Clear spatial hash
-    this.gravity = new Vector2(0, -9.81); // Reset gravity
+    this.particles = []; // Clear all particles
+    this.spatialHash.clear();
+    // Reset gravity downward
+    this.gravity = new Vector2(0, -9.81);
   }
 
   drawForces() {

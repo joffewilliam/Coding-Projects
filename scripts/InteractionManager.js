@@ -2,157 +2,94 @@ import { Vector2 } from './Vector2.js';
 import { Particle } from './Particle.js';
 
 export class InteractionManager {
-  constructor(canvas, sphSystem, windField) {
+  constructor(canvas, simulation) {
     this.canvas = canvas;
-    this.sph = sphSystem;
-    this.windField = windField;
+    this.simulation = simulation;
+    this.currentTool = 'water'; // Options: 'water', 'wind', 'eraseWater', 'eraseWind'
+    this.isDrawing = false;
+    this.brushSize = 50; // Brush radius for wind/erase tools
+    this.lastMousePos = null; // For optional delta calculations
+
+    // Add properties to throttle water drops:
+    this.lastWaterDropTime = 0;
+    this.waterDropCooldown = 100; // in milliseconds
+
     this.initEvents();
-    this.currentTool = 'water';  // default tool is water
-    this.brushSize = 50;         // default brush size
-    this.brushStrength = 100;    // default brush strength
-    this.lastWindPos = null;    // store last wind drawing position
   }
 
   initEvents() {
-    this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
-    this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
-    this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
-    this.canvas.addEventListener('touchstart', this.onTouchStart.bind(this));
-    this.canvas.addEventListener('touchmove', this.onTouchMove.bind(this));
-    this.canvas.addEventListener('touchend', this.onTouchEnd.bind(this));
-  }
-
-  getMousePos(event) {
-    const rect = this.canvas.getBoundingClientRect();
-    return new Vector2(
-      event.clientX - rect.left,
-      event.clientY - rect.top
-    );
-  }
-
-  onMouseDown(event) {
-    this.isDrawing = true;
-    this.handleInteraction(event);
-  }
-
-  onMouseMove(event) {
-    if (this.isDrawing) {
+    // Mouse events
+    this.canvas.addEventListener('mousedown', (event) => {
+      this.isDrawing = true;
+      this.lastMousePos = this.getMousePosition(event);
       this.handleInteraction(event);
-    }
-  }
+    });
 
-  onMouseUp() {
-    this.isDrawing = false;
-  }
+    this.canvas.addEventListener('mousemove', (event) => {
+      this.handleInteraction(event);
+    });
 
-  handleInteraction(event) {
-    const pos = this.getMousePos(event);
+    window.addEventListener('mouseup', () => {
+      this.isDrawing = false;
+      this.lastMousePos = null;
+    });
 
-    switch (this.currentTool) {
-      case 'water':
-        this.addWater(pos);
-        break;
-      case 'wind':
-        this.addWind(pos);
-        break;
-      case 'eraseWater':
-        this.removeWaterParticles(pos);
-        break;
-      case 'eraseWind':
-        this.removeWind(pos);
-        break;
-    }
-  }
-  
-      reset() {
-        // Reset any interaction-specific state if necessary
-        this.tool = 'none';
-        this.brushSize = 50;
-        this.brushStrength = 100;
-    }
+    // Touch events
+    this.canvas.addEventListener('touchstart', (event) => {
+      event.preventDefault();
+      this.isDrawing = true;
+      this.lastMousePos = this.getMousePosition(event.touches[0]);
+      this.handleInteraction(event.touches[0]);
+    });
 
-  addWater(position) {
-    const count = Math.floor(this.brushSize / 4);
-    for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = Math.random() * this.brushSize;
-      const pos = new Vector2(
-        position.x + Math.cos(angle) * radius,
-        position.y + Math.sin(angle) * radius
-      );
-      
-      const vel = new Vector2(
-        (Math.random() - 0.5) * this.brushStrength,
-        (Math.random() - 0.5) * this.brushStrength
-      );
-      
-      this.sph.particles.push(new Particle(pos, vel));
-    }
-  }
+    this.canvas.addEventListener('touchmove', (event) => {
+      event.preventDefault();
+      this.handleInteraction(event.touches[0]);
+    });
 
-  addWind(position) {
-    if (!this.lastWindPos) {
-      this.lastWindPos = position;
-      return;
-    }
-
-    const strength = this.brushStrength * 0.1;
-    this.windField.addWind(this.lastWindPos, position, strength);
-    this.lastWindPos = position;
-  }
-
-  removeWaterParticles(position) {
-    const radiusSq = this.brushSize * this.brushSize;
-    this.sph.particles = this.sph.particles.filter(p => {
-      const distSq = p.position.sub(position).magSq();
-      return distSq > radiusSq;  // Keep particles outside of the brush radius
+    this.canvas.addEventListener('touchend', (event) => {
+      event.preventDefault();
+      this.isDrawing = false;
+      this.lastMousePos = null;
     });
   }
 
-  removeWind(position) {
-    const radiusSq = this.brushSize * this.brushSize;
-    const cols = Math.ceil(this.windField.field.length);
-    const rows = Math.ceil(this.windField.field[0].length);
+  getMousePosition(event) {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: (event.clientX - rect.left) * (this.canvas.width / rect.width),
+      // Flip the Y coordinate.
+      y: this.canvas.height - (event.clientY - rect.top) * (this.canvas.height / rect.height)
+    };
+  }
 
-    for (let x = 0; x < cols; x++) {
-      for (let y = 0; y < rows; y++) {
-        const fieldPos = new Vector2(x * this.windField.resolution, y * this.windField.resolution);
-        const distSq = fieldPos.sub(position).magSq();
-        if (distSq < radiusSq) {
-          this.windField.field[x][y] = new Vector2(); // Remove wind field in this area
-        }
+  handleInteraction(event) {
+    if (!this.isDrawing) return;
+    const pos = this.getMousePosition(event);
+
+    if (this.currentTool === 'water') {
+      // Throttle water drops based on cooldown.
+      const now = Date.now();
+      if (now - this.lastWaterDropTime >= this.waterDropCooldown) {
+        this.simulation.addWaterParticles(pos.x, pos.y, 10);
+        this.lastWaterDropTime = now;
       }
+    } else if (this.currentTool === 'wind') {
+      const forceX = 1.0;
+      const forceY = 1.0;
+      this.simulation.addWindForce(pos.x, pos.y, forceX, forceY, this.brushSize);
+    } else if (this.currentTool === 'eraseWater' || this.currentTool === 'eraseWind') {
+      this.simulation.eraseWater(pos.x, pos.y, this.brushSize);
     }
+
+    this.lastMousePos = pos;
   }
 
   setTool(tool) {
     this.currentTool = tool;
-    this.lastWindPos = null;  // Reset wind drawing state on tool change
   }
 
   setBrushSize(size) {
     this.brushSize = size;
-  }
-
-  setBrushStrength(strength) {
-    this.brushStrength = strength;
-  }
-
-  // Touch event handlers
-  onTouchStart(event) {
-    event.preventDefault();
-    this.isDrawing = true;
-    this.handleInteraction(event.touches[0]);
-  }
-
-  onTouchMove(event) {
-    event.preventDefault();
-    if (this.isDrawing) {
-      this.handleInteraction(event.touches[0]);
-    }
-  }
-
-  onTouchEnd() {
-    this.isDrawing = false;
   }
 }

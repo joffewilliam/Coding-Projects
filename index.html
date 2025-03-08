@@ -165,5 +165,45 @@
   <script type="module" src="./scripts/FluidSimulation.js"></script>
   <script type="module" src="./scripts/UIControls.js"></script>
   <script type="module" src="./scripts/init.js"></script>
+
+  <script>
+  // Clear any saved scroll position from the browser's history
+  if (history.scrollRestoration) {
+    history.scrollRestoration = 'manual';
+  }
+  
+  // Force scroll to top immediately when page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    window.scrollTo(0, 0);
+    
+    // Initially hide or collapse the simulation section
+    const simulationSection = document.getElementById('simulation');
+    if (simulationSection) {
+      simulationSection.style.display = 'none'; // Or set height to 0
+    }
+    
+    // Show simulation and adjust page height when launch button is clicked
+    const launchButton = document.getElementById('launchButton');
+    if (launchButton) {
+      launchButton.addEventListener('click', function() {
+        if (simulationSection) {
+          simulationSection.style.display = 'block'; // Show the simulation
+          
+          // Optionally scroll to the simulation section
+          simulationSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    }
+  });
+  
+  // The rest of your existing scroll code
+  window.addEventListener('load', function() {
+    window.scrollTo(0, 0);
+  });
+  
+  setTimeout(function() {
+    window.scrollTo(0, 0);
+  }, 100);
+</script>
 </body>
 </html>
